@@ -1,6 +1,6 @@
-.idea
+.idea/
 out/
-.gradle
-build
-gradle
+.gradle/
+build/
+gradle/
 java-employee-challenge.iml

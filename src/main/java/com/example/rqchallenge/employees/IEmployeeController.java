@@ -1,5 +1,6 @@
 package com.example.rqchallenge.employees;
 
+import com.example.rqchallenge.models.Employee;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -8,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
+@RequestMapping("/employee")
 public interface IEmployeeController {
 
     @GetMapping()

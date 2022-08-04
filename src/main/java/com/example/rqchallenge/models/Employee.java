@@ -12,7 +12,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class Employee {
     @JsonIgnore
-    private Long id;
+    private String id;
     @JsonProperty("employee_name")
     private String name;
     @JsonProperty("employee_salary")

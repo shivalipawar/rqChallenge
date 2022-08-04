@@ -2,6 +2,7 @@ package com.example.rqchallenge.controller;
 
 import com.example.rqchallenge.employees.IEmployeeController;
 import com.example.rqchallenge.models.Employee;
+import com.example.rqchallenge.models.EmployeesResponse;
 import com.example.rqchallenge.service.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,45 +20,51 @@ public class EmployeeController implements IEmployeeController {
     EmployeeService employeeService;
 
     @Override
-    public ResponseEntity<List<Employee>> getAllEmployees() throws IOException {
-        ResponseEntity<List<Employee>> response = null;
+    public ResponseEntity<List<Employee>> getAllEmployees() {
         List<Employee> allEmployees = employeeService.getAllEmployees();
-        if (allEmployees != null) {
-            response = ResponseEntity.ok().body(allEmployees);
-        } else {
-            String errorMessage = "Getting the config failed and returned null.";
-//            LOGGER.error(errorLog, errorMessage);
-        }
-        return response;
+        return ResponseEntity.ok().body(allEmployees);
     }
 
     @Override
     public ResponseEntity<List<Employee>> getEmployeesByNameSearch(String searchString) {
-        return null;
+        List<Employee> employeesByName = employeeService.getEmployeesByName(searchString);
+        return ResponseEntity.ok().body(employeesByName);
     }
 
     @Override
     public ResponseEntity<Employee> getEmployeeById(String id) {
-        return null;
+        Employee employeeById = employeeService.getEmployeeById(id);
+        return ResponseEntity.ok().body(employeeById);
     }
 
     @Override
     public ResponseEntity<Integer> getHighestSalaryOfEmployees() {
-        return null;
+        Long highestSalaryOfEmployee = employeeService.getHighestSalaryOfEmployee();
+        return ResponseEntity.ok().body(highestSalaryOfEmployee.intValue());
     }
 
     @Override
     public ResponseEntity<List<String>> getTopTenHighestEarningEmployeeNames() {
-        return null;
+        List<String> tenHighestSalaryEmployeeNames = employeeService.getTenHighestSalaryEmployeeNames();
+        return ResponseEntity.ok().body(tenHighestSalaryEmployeeNames);
     }
 
     @Override
     public ResponseEntity<Employee> createEmployee(Map<String, Object> employeeInput) {
-        return null;
+        Employee employee = employeeService.createEmployee(employeeInput);
+        if(employee == null){
+            return ResponseEntity.badRequest().body(null);
+        }
+        return ResponseEntity.ok().body(employee);
     }
 
     @Override
     public ResponseEntity<String> deleteEmployeeById(String id) {
-        return null;
+        Employee employeeToBeDeleted = employeeService.getEmployeeById(id);
+        EmployeesResponse employeesResponse = employeeService.deleteEmployeeById(id);
+        if(!employeesResponse.getStatus().equalsIgnoreCase("success")){
+            return ResponseEntity.badRequest().body(null);
+        }
+        return ResponseEntity.ok().body(employeeToBeDeleted.getName());
     }
 }

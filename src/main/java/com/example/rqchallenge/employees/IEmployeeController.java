@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/employee")
 public interface IEmployeeController {
 
     @GetMapping()

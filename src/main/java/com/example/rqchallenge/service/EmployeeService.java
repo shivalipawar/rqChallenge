@@ -1,12 +1,17 @@
 package com.example.rqchallenge.service;
 
+import com.example.rqchallenge.exception.TooManyRequestException;
 import com.example.rqchallenge.models.Employee;
+import com.example.rqchallenge.models.EmployeeCreateResponse;
+import com.example.rqchallenge.models.EmployeeDeleteResponse;
 import com.example.rqchallenge.models.EmployeesResponse;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,11 +39,17 @@ public class EmployeeService {
 
     public List<Employee> getAllEmployees() {
         HttpGet get = new HttpGet(HOSTNAME + GET_EMPLOYEES);
-        EmployeesResponse employeesResponse = null;
+        EmployeesResponse employeesResponse;
         try {
             CloseableHttpResponse response = closeableHttpClient.execute(get);
+            if(response.getStatusLine().getStatusCode() != 200)
+                throw new TooManyRequestException("Too many requests");
             String responseEntity = EntityUtils.toString(response.getEntity());
             employeesResponse = objectMapper.readValue(responseEntity, EmployeesResponse.class);
+        } catch (TooManyRequestException e){
+            //TODO Logger
+            e.printStackTrace();
+            throw e;
         } catch (IOException e) {
             e.printStackTrace();
             return new ArrayList<>();
@@ -48,18 +59,19 @@ public class EmployeeService {
 
     public List<Employee> getEmployeesByName(String searchString) {
         List<Employee> allEmployees = getAllEmployees();
-        return allEmployees.stream().filter(employee -> employee.getName().equalsIgnoreCase(searchString)).collect(Collectors.toList());
+        return allEmployees.stream().filter(employee -> employee.getName().toLowerCase().contains(searchString.toLowerCase())).collect(Collectors.toList());
     }
 
     public Employee getEmployeeById(String id) {
         List<Employee> allEmployees = getAllEmployees();
-        return allEmployees.stream().filter(employee -> employee.getId().equalsIgnoreCase(id)).collect(Collectors.toList()).get(0);
+        List<Employee> collect = allEmployees.stream().filter(employee -> employee.getId().equalsIgnoreCase(id)).collect(Collectors.toList());
+        return (!collect.isEmpty()) ? collect.get(0) : null;
     }
 
     public Long getHighestSalaryOfEmployee() {
         List<Employee> allEmployees = getAllEmployees();
         List<Employee> highestSalaryEmployee = allEmployees.stream().sorted(Comparator.comparingLong(Employee::getSalary).reversed()).limit(1).collect(Collectors.toList());
-        return highestSalaryEmployee.get(0).getSalary();
+        return (!highestSalaryEmployee.isEmpty()) ? highestSalaryEmployee.get(0).getSalary() : null;
     }
 
     public List<String> getTenHighestSalaryEmployeeNames() {
@@ -69,25 +81,46 @@ public class EmployeeService {
 
     public Employee createEmployee(Map<String, Object> employeeInput){
         HttpPost post = new HttpPost(HOSTNAME + CREATE);
-        EmployeesResponse employeesResponse = null;
+        EmployeeCreateResponse employeesResponse;
         try {
+            String employeeInputString = objectMapper.writeValueAsString(employeeInput);
+            Employee employee = objectMapper.readValue(employeeInputString, Employee.class);
+            post.setEntity(new StringEntity(employee.toString()));
             CloseableHttpResponse response = closeableHttpClient.execute(post);
+            if(response.getStatusLine().getStatusCode() != 200)
+                throw new TooManyRequestException("Too many requests");
             String responseEntity = EntityUtils.toString(response.getEntity());
-            employeesResponse = objectMapper.readValue(responseEntity, EmployeesResponse.class);
+            employeesResponse = objectMapper.readValue(responseEntity, EmployeeCreateResponse.class);
+            if(employeesResponse.getStatus().equalsIgnoreCase("success")){
+                Employee addedEmployee = employeesResponse.getData();
+                addedEmployee.setName(employee.getName());
+                addedEmployee.setSalary(employee.getSalary());
+                addedEmployee.setAge(employee.getAge());
+            }
+        } catch (TooManyRequestException e){
+            //TODO Logger
+            e.printStackTrace();
+            throw e;
         } catch (IOException e) {
             e.printStackTrace();
             return null;
         }
-        return employeesResponse.getData().get(0);
+        return employeesResponse.getData();
     }
 
-    public EmployeesResponse deleteEmployeeById(String id){
+    public EmployeeDeleteResponse deleteEmployeeById(String id){
         HttpDelete delete = new HttpDelete(HOSTNAME + DELETE + id);
-        EmployeesResponse employeesResponse = null;
+        EmployeeDeleteResponse employeesResponse;
         try {
             CloseableHttpResponse response = closeableHttpClient.execute(delete);
+            if(response.getStatusLine().getStatusCode() != 200)
+                throw new TooManyRequestException("Too many requests");
             String responseEntity = EntityUtils.toString(response.getEntity());
-            employeesResponse = objectMapper.readValue(responseEntity, EmployeesResponse.class);
+            employeesResponse = objectMapper.readValue(responseEntity, EmployeeDeleteResponse.class);
+        } catch (TooManyRequestException e){
+            //TODO Logger
+            e.printStackTrace();
+            throw e;
         } catch (IOException e) {
             e.printStackTrace();
             return null;

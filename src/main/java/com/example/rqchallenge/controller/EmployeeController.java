@@ -2,6 +2,7 @@ package com.example.rqchallenge.controller;
 
 import com.example.rqchallenge.employees.IEmployeeController;
 import com.example.rqchallenge.models.Employee;
+import com.example.rqchallenge.models.EmployeeDeleteResponse;
 import com.example.rqchallenge.models.EmployeesResponse;
 import com.example.rqchallenge.service.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +17,7 @@ import java.util.Map;
 @RestController
 public class EmployeeController implements IEmployeeController {
 
+    public static final String SUCCESS = "success";
     @Autowired
     EmployeeService employeeService;
 
@@ -61,8 +63,12 @@ public class EmployeeController implements IEmployeeController {
     @Override
     public ResponseEntity<String> deleteEmployeeById(String id) {
         Employee employeeToBeDeleted = employeeService.getEmployeeById(id);
-        EmployeesResponse employeesResponse = employeeService.deleteEmployeeById(id);
-        if(!employeesResponse.getStatus().equalsIgnoreCase("success")){
+        //TODO Difference as getEmployees doesnt have this employee but when i try to delete it gets deleted.
+//        if(employeeToBeDeleted == null){
+//            return ResponseEntity.notFound().build();
+//        }
+        EmployeeDeleteResponse employeesResponse = employeeService.deleteEmployeeById(id);
+        if(employeesResponse == null || !employeesResponse.getStatus().equalsIgnoreCase(SUCCESS)){
             return ResponseEntity.badRequest().body(null);
         }
         return ResponseEntity.ok().body(employeeToBeDeleted.getName());

@@ -1,6 +1,7 @@
 package com.example.rqchallenge.controller;
 
 import com.example.rqchallenge.exception.EmployeeNotFoundException;
+import com.example.rqchallenge.exception.HighestSalaryNotFound;
 import com.example.rqchallenge.exception.TooManyRequestException;
 import com.example.rqchallenge.models.Employee;
 import com.example.rqchallenge.models.EmployeeDeleteResponse;
@@ -128,6 +129,20 @@ class EmployeeControllerTest {
         Assertions.assertNotNull(highestSalaryResponse.getBody());
         Assertions.assertEquals(HttpStatus.OK,highestSalaryResponse.getStatusCode());
         Assertions.assertEquals(750050L,highestSalaryResponse.getBody().longValue());
+    }
+
+    @Test
+    void getHighestSalaryOfEmployeesThrowsException() {
+
+        Mockito.when(employeeService.getHighestSalaryOfEmployee()).thenThrow(HighestSalaryNotFound.class);
+
+        HighestSalaryNotFound exception = Assertions.assertThrows(
+                HighestSalaryNotFound.class,
+                () -> employeeController.getHighestSalaryOfEmployees(),
+                "Expected highest salary not found exception"
+        );
+
+        Assertions.assertNotNull(exception);
     }
 
     @Test

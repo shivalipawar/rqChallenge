@@ -17,7 +17,10 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -30,32 +33,43 @@ import java.util.stream.Collectors;
 
 @Service
 public class EmployeeService {
-    //TODO move to property file
-    private static final String HOSTNAME = "https://dummy.restapiexample.com/api/v1";
-    private static final String GET_EMPLOYEES = "/employees";
-    private static final String CREATE = "/create";
-    private static final String DELETE = "/delete/";
+    @Value("${hostname}")
+    private String HOSTNAME;
+
+    @Value("${api.version}")
+    private String API_VERSION;
+
+    @Value("${employee.get.all}")
+    private String GET_EMPLOYEES;
+
+    @Value("${employee.delete}")
+    private String DELETE;
+
+    @Value("${employee.create}")
+    private String CREATE;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private static Logger logger = LoggerFactory.getLogger(EmployeeService.class);
 
     @Autowired
     private CloseableHttpClient closeableHttpClient;
 
     public List<Employee> getAllEmployees() {
-        HttpGet get = new HttpGet(HOSTNAME + GET_EMPLOYEES);
+        HttpGet get = new HttpGet(HOSTNAME + API_VERSION + GET_EMPLOYEES);
         EmployeesResponse employeesResponse;
         try {
             CloseableHttpResponse response = closeableHttpClient.execute(get);
             if(response.getStatusLine().getStatusCode() == 429)
                 throw new TooManyRequestException();
+
             String responseEntity = EntityUtils.toString(response.getEntity());
             employeesResponse = objectMapper.readValue(responseEntity, EmployeesResponse.class);
+
         } catch (TooManyRequestException e){
-            //TODO Logger
-            e.printStackTrace();
+            logger.error("Exception occurred fetching all employees",e);
             throw e;
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("JsonException occurred fetching all employees",e);
             return new ArrayList<>();
         }
         return employeesResponse.getData();
@@ -90,7 +104,7 @@ public class EmployeeService {
     }
 
     public Employee createEmployee(Map<String, Object> employeeInput){
-        HttpPost post = new HttpPost(HOSTNAME + CREATE);
+        HttpPost post = new HttpPost(HOSTNAME + API_VERSION + CREATE);
         EmployeeCreateResponse employeesResponse;
         try {
             Employee employee = convertInputToEquivalentPOJO(employeeInput, post);
@@ -102,11 +116,10 @@ public class EmployeeService {
             employeesResponse = objectMapper.readValue(responseEntity, EmployeeCreateResponse.class);
             updateCreatedEmployee(employeesResponse, employee);
         } catch (TooManyRequestException e){
-            //TODO Logger
-            e.printStackTrace();
+            logger.error("Exception occurred when creating new employee",e);
             throw e;
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("JsonException occurred when creating new employee",e);
             return null;
         }
         return employeesResponse.getData();
@@ -129,7 +142,7 @@ public class EmployeeService {
     }
 
     public EmployeeDeleteResponse deleteEmployeeById(String id){
-        HttpDelete delete = new HttpDelete(HOSTNAME + DELETE + id);
+        HttpDelete delete = new HttpDelete(HOSTNAME + API_VERSION + DELETE + "/"+id);
         EmployeeDeleteResponse employeesResponse;
         try {
             CloseableHttpResponse response = closeableHttpClient.execute(delete);
@@ -138,11 +151,10 @@ public class EmployeeService {
             String responseEntity = EntityUtils.toString(response.getEntity());
             employeesResponse = objectMapper.readValue(responseEntity, EmployeeDeleteResponse.class);
         } catch (TooManyRequestException e){
-            //TODO Logger
-            e.printStackTrace();
+            logger.error("Exception occurred when deleting a employee",e);
             throw e;
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("JsonException occurred when deleting a employee",e);
             return null;
         }
         return employeesResponse;

@@ -14,7 +14,8 @@ import java.util.Map;
 @RestController
 public class EmployeeController implements IEmployeeController {
 
-    public static final String SUCCESS = "success";
+    private static final String SUCCESS = "success";
+
     @Autowired
     EmployeeService employeeService;
 

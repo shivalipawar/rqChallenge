@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Scope;
 
 @Configuration
 public class HttpClientConfig {
-
     @Bean("closeableHttpClient")
     @Scope("singleton")
     public CloseableHttpClient createClient(){

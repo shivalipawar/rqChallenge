@@ -33,5 +33,33 @@ public class ControllerAdvisor extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.TOO_MANY_REQUESTS);
     }
 
+    @ExceptionHandler(InvalidRequestException.class)
+    public ResponseEntity<Object> handleInvalidRequestException(
+            InvalidRequestException ex, WebRequest request) {
 
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("message", "Invalid request");
+
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(ApiFailureException.class)
+    public ResponseEntity<Object> handleApiFailureException(
+            ApiFailureException ex, WebRequest request) {
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("message", "Internal server error");
+
+        return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(HighestSalaryNotFoundException.class)
+    public ResponseEntity<Object> handleHighestSalaryNotFoundException(
+            HighestSalaryNotFoundException ex, WebRequest request) {
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("message", "Highest salary of employee not found");
+
+        return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
+    }
 }

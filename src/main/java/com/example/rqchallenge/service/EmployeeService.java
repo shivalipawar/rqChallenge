@@ -1,13 +1,7 @@
 package com.example.rqchallenge.service;
 
-import com.example.rqchallenge.exception.EmployeeNotFoundException;
-import com.example.rqchallenge.exception.HighestSalaryNotFound;
-import com.example.rqchallenge.exception.TooManyRequestException;
-import com.example.rqchallenge.models.Employee;
-import com.example.rqchallenge.models.EmployeeCreateResponse;
-import com.example.rqchallenge.models.EmployeeDeleteResponse;
-import com.example.rqchallenge.models.EmployeesResponse;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.example.rqchallenge.exception.*;
+import com.example.rqchallenge.models.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
@@ -20,19 +14,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class EmployeeService {
 
+    public static final int EMPLOYEE_PAGE_SIZE = 10;
     @Value("${hostname}")
     private String HOSTNAME;
 
@@ -55,109 +48,111 @@ public class EmployeeService {
     private CloseableHttpClient closeableHttpClient;
 
     public List<Employee> getAllEmployees() {
-        HttpGet get = new HttpGet(HOSTNAME + API_VERSION + GET_EMPLOYEES);
-        EmployeesResponse employeesResponse;
         try {
-            CloseableHttpResponse response = closeableHttpClient.execute(get);
-            if (response.getStatusLine().getStatusCode() == 429)
+            String getEmployeesUrl = HOSTNAME + API_VERSION + GET_EMPLOYEES;
+            CloseableHttpResponse response = closeableHttpClient.execute(new HttpGet(getEmployeesUrl));
+            if (response.getStatusLine().getStatusCode() == HttpStatus.TOO_MANY_REQUESTS.value()) {
+                logger.error("api got throttled while getting employees");
                 throw new TooManyRequestException();
-
-            String responseEntity = EntityUtils.toString(response.getEntity());
-            employeesResponse = objectMapper.readValue(responseEntity, EmployeesResponse.class);
-
-        } catch (TooManyRequestException e) {
-            logger.error("Exception occurred fetching all employees", e);
-            throw e;
+            }
+            return toResponse(response, EmployeesResponse.class).getData();
         } catch (IOException e) {
-            logger.error("JsonException occurred fetching all employees", e);
+            logger.error("jsonException occurred fetching all employees", e);
             return new ArrayList<>();
         }
-        return employeesResponse.getData();
+
     }
 
     public List<Employee> getEmployeesByName(String searchString) {
-        List<Employee> allEmployees = getAllEmployees();
-        return allEmployees.stream().filter(employee -> employee.getName().toLowerCase().contains(searchString.toLowerCase())).collect(Collectors.toList());
+        return getAllEmployees()
+                .stream()
+                .filter(employee -> employee
+                        .getName().toLowerCase()
+                        .contains(searchString.toLowerCase()))
+                .collect(Collectors.toList());
     }
 
     public Employee getEmployeeById(String id) {
-        List<Employee> allEmployees = getAllEmployees();
-        List<Employee> employeeById = allEmployees.stream().filter(employee -> employee.getId().equalsIgnoreCase(id)).collect(Collectors.toList());
-        if (employeeById.isEmpty()) {
+        Optional<Employee> employee = getAllEmployees()
+                .stream()
+                .filter(e -> e.getId().equalsIgnoreCase(id))
+                .findFirst();
+        if (!employee.isPresent()) {
+            logger.info("employee with id {} does not exists", id);
             throw new EmployeeNotFoundException(id);
         }
-        return employeeById.get(0);
+        return employee.get();
     }
 
     public Long getHighestSalaryOfEmployee() {
-        List<Employee> allEmployees = getAllEmployees();
-        List<Employee> highestSalaryEmployee = allEmployees.stream().sorted(Comparator.comparingLong(Employee::getSalary).reversed()).limit(1).collect(Collectors.toList());
-        if (highestSalaryEmployee.isEmpty()) {
-            throw new HighestSalaryNotFound();
+        Optional<Employee> highestSalaryEmployee = getAllEmployees()
+                .stream()
+                .max(Comparator.comparingLong(Employee::getSalary));
+        if (!highestSalaryEmployee.isPresent()) {
+            logger.debug("employee with highest salary not found");
+            throw new HighestSalaryNotFoundException();
         }
-        return highestSalaryEmployee.get(0).getSalary();
+        return highestSalaryEmployee.get().getSalary();
     }
 
     public List<String> getTenHighestSalaryEmployeeNames() {
-        List<Employee> allEmployees = getAllEmployees();
-        return allEmployees.stream().sorted(Comparator.comparingLong(Employee::getSalary).reversed()).map(Employee::getName).limit(10).collect(Collectors.toList());
+        return getAllEmployees().stream()
+                .sorted(Comparator.comparingLong(Employee::getSalary).reversed())
+                .map(Employee::getName)
+                .limit(EMPLOYEE_PAGE_SIZE)
+                .collect(Collectors.toList());
     }
 
     public Employee createEmployee(Map<String, Object> employeeInput) {
-        HttpPost post = new HttpPost(HOSTNAME + API_VERSION + CREATE_EMPLOYEE);
-        EmployeeCreateResponse employeesResponse;
         try {
-            Employee employee = convertInputToEquivalentEmployee(employeeInput, post);
+            HttpPost post = toCreateEmployeeRequest(employeeInput);
             CloseableHttpResponse response = closeableHttpClient.execute(post);
-            if (response.getStatusLine().getStatusCode() == 429)
+            if (response.getStatusLine().getStatusCode() == HttpStatus.TOO_MANY_REQUESTS.value()) {
+                logger.error("external api got throttled when creating new employee");
                 throw new TooManyRequestException();
-
-            String responseEntity = EntityUtils.toString(response.getEntity());
-            employeesResponse = objectMapper.readValue(responseEntity, EmployeeCreateResponse.class);
-            updateCreatedEmployee(employeesResponse, employee);
-        } catch (TooManyRequestException e) {
-            logger.error("Exception occurred when creating new employee", e);
-            throw e;
+            }
+            CreateEmployeeApiResponse data = toResponse(response, EmployeeCreateResponse.class).getData();
+            return new Employee(data.getId(), data.getName(), data.getSalary(), data.getAge(), "");
         } catch (IOException e) {
-            logger.error("JsonException occurred when creating new employee", e);
-            return null;
+            logger.trace("failed to execute create employee request", e);
+            throw new ApiFailureException(e.getMessage());
         }
-        return employeesResponse.getData();
     }
 
-    private Employee convertInputToEquivalentEmployee(Map<String, Object> employeeInput, HttpPost post) throws JsonProcessingException, UnsupportedEncodingException {
-        String employeeInputString = objectMapper.writeValueAsString(employeeInput);
-        Employee employee = objectMapper.readValue(employeeInputString, Employee.class);
-        post.setEntity(new StringEntity(employee.toString()));
-        return employee;
-    }
-
-    private void updateCreatedEmployee(EmployeeCreateResponse employeesResponse, Employee employee) {
-        if (employeesResponse.getStatus().equalsIgnoreCase("success")) {
-            Employee addedEmployee = employeesResponse.getData();
-            addedEmployee.setName(employee.getName());
-            addedEmployee.setSalary(employee.getSalary());
-            addedEmployee.setAge(employee.getAge());
+    private HttpPost toCreateEmployeeRequest(Map<String, Object> employeeInput) {
+        try {
+            HttpPost post = new HttpPost(HOSTNAME + API_VERSION + CREATE_EMPLOYEE);
+            post.setEntity(new StringEntity(employeeInput.toString()));
+            return post;
+        } catch (UnsupportedEncodingException e) {
+            logger.error("error while parsing create employee request");
+            throw new InvalidRequestException("failed to parse employee request");
         }
     }
 
     public EmployeeDeleteResponse deleteEmployeeById(String id) {
-        HttpDelete delete = new HttpDelete(HOSTNAME + API_VERSION + DELETE_EMPLOYEE + "/" + id);
-        EmployeeDeleteResponse employeesResponse;
         try {
-            CloseableHttpResponse response = closeableHttpClient.execute(delete);
-            if (response.getStatusLine().getStatusCode() == 429)
+            CloseableHttpResponse response = closeableHttpClient.execute(
+                    new HttpDelete(HOSTNAME + API_VERSION + DELETE_EMPLOYEE + "/" + id)
+            );
+            if (response.getStatusLine().getStatusCode() == HttpStatus.TOO_MANY_REQUESTS.value()) {
+                logger.error("Throttling error while deleting employee with id {}", id);
                 throw new TooManyRequestException();
-            String responseEntity = EntityUtils.toString(response.getEntity());
-            employeesResponse = objectMapper.readValue(responseEntity, EmployeeDeleteResponse.class);
-        } catch (TooManyRequestException e) {
-            logger.error("Exception occurred when deleting a employee", e);
-            throw e;
-        } catch (IOException e) {
-            logger.error("JsonException occurred when deleting a employee", e);
-            return null;
+            }
+            return toResponse(response, EmployeeDeleteResponse.class);
+        } catch (Exception e) {
+            logger.debug("error while deleting employee", e);
+            throw new ApiFailureException(e.getMessage());
         }
-        return employeesResponse;
     }
 
+    public <T> T toResponse(CloseableHttpResponse response, Class<T> cls) {
+        try {
+            String responseEntity = EntityUtils.toString(response.getEntity());
+            return objectMapper.readValue(responseEntity, cls);
+        } catch (IOException e) {
+            logger.debug("error while parsing http response", e);
+            throw new ApiFailureException(e.getMessage());
+        }
+    }
 }

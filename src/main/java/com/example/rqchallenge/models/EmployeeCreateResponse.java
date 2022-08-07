@@ -14,7 +14,7 @@ public class EmployeeCreateResponse {
     @JsonProperty("status")
     private String status;
     @JsonProperty("data")
-    private Employee data;
+    private CreateEmployeeApiResponse data;
     @JsonProperty("message")
     private String message;
 }

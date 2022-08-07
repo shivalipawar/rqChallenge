@@ -2,7 +2,6 @@ package com.example.rqchallenge.controller;
 
 import com.example.rqchallenge.employees.IEmployeeController;
 import com.example.rqchallenge.models.Employee;
-import com.example.rqchallenge.models.EmployeeDeleteResponse;
 import com.example.rqchallenge.service.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -13,8 +12,6 @@ import java.util.Map;
 
 @RestController
 public class EmployeeController implements IEmployeeController {
-
-    private static final String SUCCESS = "success";
 
     @Autowired
     EmployeeService employeeService;
@@ -52,19 +49,13 @@ public class EmployeeController implements IEmployeeController {
     @Override
     public ResponseEntity<Employee> createEmployee(Map<String, Object> employeeInput) {
         Employee employee = employeeService.createEmployee(employeeInput);
-        if(employee == null){
-            return ResponseEntity.badRequest().body(null);
-        }
         return ResponseEntity.ok().body(employee);
     }
 
     @Override
     public ResponseEntity<String> deleteEmployeeById(String id) {
         Employee employeeToBeDeleted = employeeService.getEmployeeById(id);
-        EmployeeDeleteResponse employeesResponse = employeeService.deleteEmployeeById(id);
-        if(employeesResponse == null || !employeesResponse.getStatus().equalsIgnoreCase(SUCCESS)){
-            return ResponseEntity.badRequest().body(null);
-        }
+        employeeService.deleteEmployeeById(id);
         return ResponseEntity.ok().body(employeeToBeDeleted.getName());
     }
 }

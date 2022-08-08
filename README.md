@@ -1,5 +1,30 @@
 # Coding Challenge
 
+### Getting started
+
+### 1. clone repo
+
+sh
+git clone git@github.com:shivalipawar/rqChallenge.git
+cd rq-challenge
+
+
+### 2. run tests
+
+./gradlew clean test
+
+
+
+### 3. Build application
+
+./gradlew clean build
+
+
+
+### 4. run application
+
+java -jar build/libs/rqChallenge-0.0.1-SNAPSHOT.jar
+
 ### In this assessment you will be tasked with filling out the functionality of different methods that will be listed further down.
 These methods will require some level of api interactions with the following base url: https://dummy.restapiexample.com.
 Please keep the following in mind when doing this assessment: clean coding practices, test driven development, logging, and scalability.

@@ -1,6 +1,5 @@
 package com.example.rqchallenge.models;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -8,8 +7,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateEmployeeApiResponse {
-
+public class EmployeeApiResponse {
     private String id;
     private String name;
     private Long salary;

@@ -4,26 +4,32 @@
 
 ### 1. clone repo
 
-sh
+```sh
 git clone git@github.com:shivalipawar/rqChallenge.git
 cd rq-challenge
-
+```
 
 ### 2. run tests
-
+```shell
 ./gradlew clean test
+```
 
 
 
 ### 3. Build application
-
+```shell
 ./gradlew clean build
+```
 
 
 
 ### 4. run application
-
+```shell
 java -jar build/libs/rqChallenge-0.0.1-SNAPSHOT.jar
+```
+### try Apis 
+Use attached postman collection into project with name RqChallenge.postman_collection.json and import into postman application and use it to try apis.
+
 
 ### In this assessment you will be tasked with filling out the functionality of different methods that will be listed further down.
 These methods will require some level of api interactions with the following base url: https://dummy.restapiexample.com.

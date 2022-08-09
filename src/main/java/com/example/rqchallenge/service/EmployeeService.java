@@ -111,7 +111,7 @@ public class EmployeeService {
                 logger.error("external api got throttled when creating new employee");
                 throw new TooManyRequestException();
             }
-            CreateEmployeeApiResponse data = toResponse(response, EmployeeCreateResponse.class).getData();
+            EmployeeApiResponse data = toResponse(response, EmployeeCreateResponse.class).getData();
             return new Employee(data.getId(), data.getName(), data.getSalary(), data.getAge(), "");
         } catch (IOException e) {
             logger.trace("failed to execute create employee request", e);
